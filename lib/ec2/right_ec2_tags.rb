@@ -35,8 +35,30 @@ module RightAws
     #                           :resource_type=>"instance",
     #                           :key=>"myKey"}]
     #
-    def describe_tags
-      link = generate_request("DescribeTags")
+    # Tags may be filtered by giving an options hash. For example:
+    #
+    #  ec2.describe_tags(:resource_id => 'i-12345678')
+    #
+    # The following filters are currently supported:
+    #
+    #  * key
+    #  * resource-id
+    #  * resource-type
+    #  * value
+    #
+    # Filters may be specified as symbols or strings. Underscores will be
+    # converted to dashes.
+    #
+    # If multiple filters are specified, only tags matching all filters
+    # will be returned. If no tags match, an empty list is returned.
+    #
+    def describe_tags(options={})
+      filters = {}
+      options.each do |key, value|
+        filters[key.to_s.gsub('_', '-')] = value
+      end
+      params = amazonize_filters(filters)
+      link = generate_request("DescribeTags", params)
       request_cache_or_info :describe_tags, link,  QEc2DescribeTagsParser, @@bench
     rescue Exception
       on_exception
@@ -98,6 +120,21 @@ module RightAws
         key, value = ary
         result["Tag.#{idx+1}.Key"]   = key
         result["Tag.#{idx+1}.Value"] = value.to_s if value || require_value
+      end
+      result
+    end
+    
+    def amazonize_filters(filters)
+      result = {}
+      Array(filters).each_with_index do |(key, values), key_idx|
+        unless values.is_a?(Array)
+          values = [values]
+        end
+        
+        result["Filter.#{key_idx+1}.Name"] = key
+        values.each_with_index do |value, value_idx|
+          result["Filter.#{key_idx+1}.Value.#{value_idx+1}"] = value
+        end
       end
       result
     end
