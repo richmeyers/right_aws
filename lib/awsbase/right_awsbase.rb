@@ -668,6 +668,29 @@ module RightAws
       result
     end
 
+    EMR_INSTANCES_KEY_MAPPING = {                                                           # :nodoc:
+      :master_instance_type  => 'MasterInstanceType',
+      :slave_instance_type   => 'SlaveInstanceType',
+      :instance_count        => 'InstanceCount',
+      :ec2_key_name          => 'Ec2KeyName',
+      :availability_zone     => 'Placement.AvailabilityZone',
+      :keep_job_flow_alive   => 'KeepJobFlowAliveWhenNoSteps',
+      :termination_protected => 'TerminationProtected' }
+
+    def amazonize_emr_instances(instances, key = 'Instances') # :nodoc:
+      result = {}
+      unless instances.right_blank?
+        instances.each do |local_name, value|
+          remote_name = EMR_INSTANCES_KEY_MAPPING[local_name]
+          unless remote_name
+            raise ArgumentError, "Unknown parameter name: #{local_name}"
+          end
+          result["#{key}.#{remote_name}"] = value unless value.nil?
+        end
+      end
+      result
+    end
+
     # Execute a block of code with custom set of settings for right_http_connection.
     # Accepts next options (see Rightscale::HttpConnection for explanation):
     #  :raise_on_timeout
