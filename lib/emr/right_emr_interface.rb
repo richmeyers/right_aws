@@ -162,11 +162,8 @@ module RightAws
     def amazonize_run_job_flow(options) # :nodoc:
       result = {}
       unless options.right_blank?
-        options.each do |local_name, value|
-          remote_name = EMR_INSTANCES_KEY_MAPPING[local_name]
-          unless remote_name
-            raise ArgumentError, "Unknown parameter name: #{local_name}"
-          end
+        EMR_INSTANCES_KEY_MAPPING.each do |local_name, remote_name|
+          value = options[local_name]
           result[remote_name] = value unless value.nil?
         end
       end
@@ -243,20 +240,21 @@ module RightAws
     def amazonize_steps(steps, key = 'Steps.member') # :nodoc:
       result = {}
       unless steps.right_blank?
-        list.each_with_index do |item, index|
+        steps.each_with_index do |item, index|
           STEP_CONFIG_KEY_MAPPING.each do |local_name, remote_name|
             value = item[local_name]
             case local_name
             when :args
-              result.update(amazonize_list("#{key}.#{remote_name}", value))
+              result.update(amazonize_list("#{key}.#{index+1}.#{remote_name}", value))
             when :properties
+              next if value.right_blank?
               list = value.inject([]) do |l, (k, v)|
                 l << {:key => k, :value => v}
               end
-              result.update(amazonize_list_with_key_mappings("#{key}.#{remote_name}", KEY_VALUE_KEY_MAPPINGS, list))
+              result.update(amazonize_list_with_key_mappings("#{key}.#{index+1}.#{remote_name}", KEY_VALUE_KEY_MAPPINGS, list))
             else
               next if value.nil?
-              result["#{key}.#{remote_name}"] = value
+              result["#{key}.#{index+1}.#{remote_name}"] = value
             end
           end
         end
