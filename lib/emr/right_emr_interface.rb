@@ -133,14 +133,135 @@ module RightAws
     # of names is not provided, then the full details of all AutoScalingGroups
     # is returned. This style conforms to the EC2 DescribeInstances API behavior.
     #
-    def run_job_flow(job_flow_name, options)
-      request_hash = {'Name' => job_flow_name}
-      unless instances = options[:instances]
-        raise ArgumentError, ':instances must be specified in options'
-      end
-      request_hash.update(amazonize_emr_instances(instances))
+    def run_job_flow(options={})
+      request_hash = amazonize_run_job_flow(options)
+      request_hash.update(amazonize_bootstrap_actions(options[:bootstrap_actions]))
+      request_hash.update(amazonize_instance_groups(options[:instance_groups]))
+      request_hash.update(amazonize_steps(options[:steps]))
+      p request_hash
       link = generate_request("RunJobFlow", request_hash)
       request_info(link, RunJobFlowParser.new(:logger => @logger))
+    end
+
+    EMR_INSTANCES_KEY_MAPPING = {                                                           # :nodoc:
+      :additional_info => 'AdditionalInfo',
+      :log_uri => 'LogUri',
+      :name => 'Name',
+      # JobFlowInstancesConfig
+      :ec2_key_name          => 'Instances.Ec2KeyName',
+      :hadoop_version => 'Instances.HadoopVersion',
+      :instance_count        => 'Instances.InstanceCount',
+      :keep_job_flow_alive_when_no_steps   => 'Instances.KeepJobFlowAliveWhenNoSteps',
+      :master_instance_type  => 'Instances.MasterInstanceType',
+      :slave_instance_type   => 'Instances.SlaveInstanceType',
+      :termination_protected => 'Instances.TerminationProtected',
+      # PlacementType
+      :availability_zone     => 'Instances.Placement.AvailabilityZone',
+    }
+
+    def amazonize_run_job_flow(options) # :nodoc:
+      result = {}
+      unless options.right_blank?
+        options.each do |local_name, value|
+          remote_name = EMR_INSTANCES_KEY_MAPPING[local_name]
+          unless remote_name
+            raise ArgumentError, "Unknown parameter name: #{local_name}"
+          end
+          result[remote_name] = value unless value.nil?
+        end
+      end
+      result
+    end
+
+    BOOTSTRAP_ACTION_KEY_MAPPING = {                                                           # :nodoc:
+      :name => 'Name',
+      # ScriptBootstrapActionConfig
+      :args => 'Args',
+      :path => 'Path',
+    }
+
+    def amazonize_bootstrap_actions(bootstrap_actions, key = 'BootstrapActions.member') # :nodoc:
+      result = {}
+      unless bootstrap_actions.right_blank?
+        bootstrap_actions.each_with_index do |item, index|
+          mapping.each do |local_name, remote_name|
+            value = item[local_name]
+            case local_name
+            when :args
+              result.update(amazonize_list("#{key}.#{index+1}.#{remote_name}", value))
+            else
+              next if value.nil?
+              result["#{key}.#{index+1}.#{remote_name}"] = value
+            end
+          end
+        end
+      end
+      result
+    end
+
+    INSTANCE_GROUP_KEY_MAPPING = {                                                           # :nodoc:
+      :bid_price => 'BidPrice',
+      :instance_count => 'InstanceCount',
+      :instance_role => 'InstanceRole',
+      :instance_type => 'InstanceType',
+      :market => 'Market',
+      :name => 'Name',
+    }
+
+    def amazonize_instance_groups(hash, key = 'Instances.InstanceGroups') # :nodoc:
+      result = {}
+      unless hash.right_blank?
+        mapping.each do |local_name, remote_name|
+          value = hash[local_name]
+          case local_name
+          when :instance_groups
+            result.update(amazonize_list_with_key_mapping("#{key}.#{remote_name}", INSTANCE_GROUP_KEY_MAPPING, value))
+          else
+            next if value.nil?
+            result["#{key}.#{remote_name}"] = value
+          end
+        end
+      end
+      result
+    end
+
+    STEP_CONFIG_KEY_MAPPING = {                                                           # :nodoc:
+      :action_on_failure => 'ActionOnFailure',
+      :name => 'Name',
+      # HadoopJarStepConfig
+      :args => 'HadoopJarStep.Args',
+      :jar => 'HadoopJarStep.Jar',
+      :main_class => 'HadoopJarStep.MainClass',
+      :properties => 'HadoopJarStep.Properties',
+    }
+    
+    KEY_VALUE_KEY_MAPPINGS = {
+      :key => 'Key',
+      :value => 'Value',
+    }
+
+    def amazonize_steps(steps, key = 'Steps.member') # :nodoc:
+      result = {}
+      unless steps.right_blank?
+        list.each_with_index do |item, index|
+          STEP_CONFIG_KEY_MAPPING.each do |local_name, remote_name|
+            value = item[local_name]
+            case local_name
+            when :args
+              result.update(amazonize_list("#{key}.#{remote_name}", value))
+            when :properties
+              list = value.inject([]) do |l, (k, v)|
+                l << {:key => k, :value => v}
+              end
+              result.update(amazonize_list_with_key_mappings("#{key}.#{remote_name}", KEY_VALUE_KEY_MAPPINGS, list))
+            else
+              next if value.nil?
+              result["#{key}.#{remote_name}"] = value
+            end
+          end
+        end
+      end
+      result
     end
 
     # Creates a new auto scaling group with the specified name.

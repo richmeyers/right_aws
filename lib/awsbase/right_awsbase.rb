@@ -668,24 +668,27 @@ module RightAws
       result
     end
 
-    EMR_INSTANCES_KEY_MAPPING = {                                                           # :nodoc:
-      :master_instance_type  => 'MasterInstanceType',
-      :slave_instance_type   => 'SlaveInstanceType',
-      :instance_count        => 'InstanceCount',
-      :ec2_key_name          => 'Ec2KeyName',
-      :availability_zone     => 'Placement.AvailabilityZone',
-      :keep_job_flow_alive   => 'KeepJobFlowAliveWhenNoSteps',
-      :termination_protected => 'TerminationProtected' }
-
-    def amazonize_emr_instances(instances, key = 'Instances') # :nodoc:
+    def amazonize_hash_with_key_mapping(key, mapping, hash, options={})
       result = {}
-      unless instances.right_blank?
-        instances.each do |local_name, value|
-          remote_name = EMR_INSTANCES_KEY_MAPPING[local_name]
-          unless remote_name
-            raise ArgumentError, "Unknown parameter name: #{local_name}"
+      unless hash.right_blank?
+        mapping.each do |local_name, remote_name|
+          value = hash[local_name]
+          next if value.nil?
+          result["#{key}.#{remote_name}"] = value
+        end
+      end
+      result
+    end
+
+    def amazonize_list_with_key_mapping(key, mapping, list, options={})
+      result = {}
+      unless list.right_blank?
+        list.each_with_index do |item, index|
+          mapping.each do |local_name, remote_name|
+            value = item[local_name]
+            next if value.nil?
+            result["#{key}.#{index+1}.#{remote_name}"] = value
           end
-          result["#{key}.#{remote_name}"] = value unless value.nil?
         end
       end
       result
