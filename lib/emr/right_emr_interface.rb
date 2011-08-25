@@ -272,7 +272,20 @@ module RightAws
     #                               :max_size => 5)  #=> true
     #
     # Amazon's notice: Constraints: Restricted to one Availability Zone
-    def describe_job_flows(options={})
+    def describe_job_flows(*job_flow_ids_and_options)
+      job_flow_ids, options = AwsUtils::split_items_and_params(job_flow_ids_and_options)
+      # merge job flow ids passed in as arguments and in options
+      unless job_flow_ids.empty?
+        # do not modify passed in options
+        options = options.dup
+        if job_flow_ids_in_options = options[:job_flow_ids]
+          # allow the same ids to be passed in either location;
+          # remove duplicates
+          options[:job_flow_ids] = (job_flow_ids_in_options + job_flow_ids).uniq
+        else
+          options[:job_flow_ids] = job_flow_ids
+        end
+      end
       request_hash = {}
       unless (job_flow_ids = options[:job_flow_ids]).right_blank?
         request_hash.update(amazonize_list("JobFlowIds.member", job_flow_ids))
