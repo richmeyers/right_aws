@@ -301,7 +301,23 @@ module RightAws
     #
     #  as.set_desired_capacity('CentOS.5.1-c',3) #=> 3
     #
-    def set_termination_protection()
+    def set_termination_protection(*job_flow_ids_and_options)
+      job_flow_ids, options = AwsUtils::split_items_and_params(job_flow_ids_and_options)
+      request_hash = amazonize_list('JobFlowIds.member', job_flow_ids)
+      request_hash['TerminationProtected'] = case value = options[:termination_protected]
+      when true
+        'true'
+      when false
+        'false'
+      when nil
+        # default is to protect
+        'true'
+      else
+        # pass value through
+        value
+      end
+      link = generate_request("SetTerminationProtection", request_hash)
+      request_info(link, TerminateJobFlowsParser.new(:logger => @logger))
     end
 
     # Updates the configuration for the given AutoScalingGroup. If MaxSize is lower than the current size,
