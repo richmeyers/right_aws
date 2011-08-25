@@ -399,43 +399,13 @@ module RightAws
     #-----------------------------------------------------------------
 
     class RunJobFlowParser < RightAWSParser #:nodoc:
-      def tagstart(name, attributes)
-        case name
-        when 'member'
-          case @xmlpath
-            when @p then @item = { :instances => [ ],
-                                   :availability_zones => [],
-                                   :load_balancer_names => [] }
-            when "#@p/member/Instances" then @instance = { }
-          end
-        end
-      end
       def tagend(name)
         case name
-        when 'CreatedTime'             then @item[:created_time]              = @text
-        when 'MinSize'                 then @item[:min_size]                  = @text.to_i
-        when 'MaxSize'                 then @item[:max_size]                  = @text.to_i
-        when 'DesiredCapacity'         then @item[:desired_capacity]          = @text.to_i
-        when 'Cooldown'                then @item[:cooldown]                  = @text.to_i
-        when 'LaunchConfigurationName' then @item[:launch_configuration_name] = @text
-        when 'AutoScalingGroupName'    then @item[:auto_scaling_group_name]   = @text
-        when 'InstanceId'              then @instance[:instance_id]       = @text
-        when 'LifecycleState'          then @instance[:lifecycle_state]   = @text
-        when 'AvailabilityZone'        then @instance[:availability_zone] = @text
-        when 'member'
-          case @xmlpath
-          when @p then
-            @item[:availability_zones].sort!
-            @result << @item
-          when "#@p/member/AvailabilityZones" then @item[:availability_zones] << @text
-          when "#@p/member/LoadBalancerNames" then @item[:load_balancer_names] << @text
-          when "#@p/member/Instances"         then @item[:instances] << @instance
-          end
+        when 'JobFlowId'             then @result              = @text
         end
       end
       def reset
-        @p      = 'DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/AutoScalingGroups'
-        @result = []
+        @result = nil
       end
     end
 
