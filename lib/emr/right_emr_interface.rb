@@ -287,7 +287,9 @@ module RightAws
     # Deletes all configuration for this auto scaling group and also deletes the group.
     # Returns +true+ or raises an exception.
     #
-    def terminate_job_flows()
+    def terminate_job_flows(*job_flow_ids)
+      link = generate_request("TerminateJobFlows", amazonize_list('JobFlowIds.member', job_flow_ids))
+      request_info(link, TerminateJobFlowsParser.new(:logger => @logger))
     end
 
     # Adjusts the desired size of the Capacity Group by using scaling actions, as necessary. When
@@ -519,6 +521,12 @@ module RightAws
       end
       def reset
         @result = { :job_flows => []}
+      end
+    end
+
+    class TerminateJobFlowsParser < RightAWSParser #:nodoc:
+      def reset
+        @result = true
       end
     end
 
