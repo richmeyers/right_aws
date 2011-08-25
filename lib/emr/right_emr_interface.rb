@@ -245,7 +245,7 @@ module RightAws
             value = item[local_name]
             case local_name
             when :args
-              result.update(amazonize_list("#{key}.#{index+1}.#{remote_name}", value))
+              result.update(amazonize_list("#{key}.#{index+1}.#{remote_name}.member", value))
             when :properties
               next if value.right_blank?
               list = value.inject([]) do |l, (k, v)|
