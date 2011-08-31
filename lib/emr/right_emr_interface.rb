@@ -420,7 +420,7 @@ module RightAws
     class RunJobFlowParser < RightAWSParser #:nodoc:
       def tagend(name)
         case name
-        when 'JobFlowId'             then @result              = @text
+        when 'JobFlowId' then @result = @text
         end
       end
       def reset
@@ -475,7 +475,7 @@ module RightAws
           when 'ReadyDateTime' then @instance_group[:ready_date_time] = @text
           when 'StartDateTime' then @instance_group[:start_date_time] = @text
           when 'State' then @instance_group[:state] = @text
-          when 'member'              then @item[:instance_groups]        << @instance_group
+          when 'member' then @item[:instance_groups]        << @instance_group
           end
         when %r{/Steps/member/StepConfig/HadoopJarStepConfig/Args/member}
           @steps[:args] << @text
@@ -487,7 +487,7 @@ module RightAws
             @steps[:properties][@key] = @text
           end
         when %r{/Steps/member$}
-          @item[:steps]        << @step
+          @item[:steps] << @step
         when %r{/Steps/member} # no trailing $
           case name
           # ExecutionStatusDetail
