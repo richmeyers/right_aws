@@ -24,6 +24,7 @@
 module RightAws
 
   # = RightAWS::EmrInterface -- RightScale Amazon Elastic Map Reduce interface
+  #
   # The RightAws::AsInterface class provides a complete interface to Amazon
   # Elastic Map Reduce service.
   #
@@ -35,47 +36,33 @@ module RightAws
   #
   #  emr = RightAws::EmrInterface.new(aws_access_key_id, aws_secret_access_key)
   #
-  # Create a launch configuration:
+  # Create a job flow:
   #
-  #  as.create_launch_configuration('CentOS.5.1-c', 'ami-08f41161', 'm1.small',
-  #                                 :key_name        => 'kd-moo-test',
-  #                                 :security_groups => ['default'],
-  #                                 :user_data       => "Woohoo: CentOS.5.1-c" )
+  #  emr.run_job_flow(
+  #    :name => 'job flow 1',
+  #    :master_instance_type => 'm1.large',
+  #    :slave_instance_type => 'm1.large',
+  #    :instance_count => 5,
+  #    :log_uri => 's3n://bucket/path/to/logs',
+  #    :steps => [{
+  #      :name => 'step 1',
+  #      :jar => 's3n://bucket/path/to/code.jar',
+  #      :main_class => 'com.foobar.emr.Step1',
+  #      :args => ['arg', 'arg'],
+  #    }]) #=> "j-9K18HM82Q0AE7"
   #
-  # Create an AutoScaling group:
+  # Describe a job flow:
   #
-  #  as.create_auto_scaling_group('CentOS.5.1-c-array', 'CentOS.5.1-c', 'us-east-1c',
-  #                               :min_size => 2,
-  #                               :max_size => 5)
+  #  emr.describe_job_flows('j-9K18HM82Q0AE7') #=> {...}
   #
-  # Create a new trigger:
-  # 
-  #  as.create_or_update_scaling_trigger('kd.tr.1', 'CentOS.5.1-c-array',
-  #                                      :measure_name => 'CPUUtilization',
-  #                                      :statistic => :average,
-  #                                      :dimensions => {
-  #                                         'AutoScalingGroupName' => 'CentOS.5.1-c-array',
-  #                                         'Namespace' => 'AWS',
-  #                                         'Service' => 'EC2' },
-  #                                      :period => 60,
-  #                                      :lower_threshold => 5,
-  #                                      :lower_breach_scale_increment => -1,
-  #                                      :upper_threshold => 60,
-  #                                      :upper_breach_scale_increment => 1,
-  #                                      :breach_duration => 300 )
+  # Terminate a job flow:
   #
-  # Describe scaling activity:
-  #
-  #  as.incrementally_describe_scaling_activities('CentOS.5.1-c-array') #=> List of activities
-  #
-  # Describe the Auto Scaling group status:
-  #
-  #  as.describe_auto_scaling_groups('CentOS.5.1-c-array') #=> Current group status
+  #  emr.terminate_job_flows('j-9K18HM82Q0AE7') #=> true
   #
   class EmrInterface < RightAwsBase
     include RightAwsBaseInterface
 
-    # Amazon AS API version being used
+    # Amazon EMR API version being used
     API_VERSION       = '2009-03-31'
     DEFAULT_HOST      = 'elasticmapreduce.amazonaws.com'
     DEFAULT_PATH      = '/'
