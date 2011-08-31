@@ -302,7 +302,7 @@ module RightAws
     #
     def terminate_job_flows(*job_flow_ids)
       link = generate_request("TerminateJobFlows", amazonize_list('JobFlowIds.member', job_flow_ids))
-      request_info(link, TerminateJobFlowsParser.new(:logger => @logger))
+      request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
     # Adjusts the desired size of the Capacity Group by using scaling actions, as necessary. When
@@ -330,7 +330,7 @@ module RightAws
         value
       end
       link = generate_request("SetTerminationProtection", request_hash)
-      request_info(link, TerminateJobFlowsParser.new(:logger => @logger))
+      request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
     # Updates the configuration for the given AutoScalingGroup. If MaxSize is lower than the current size,
@@ -349,7 +349,11 @@ module RightAws
     #
     #  as.update_auto_scaling_group('CentOS.5.1-c', :min_size => 1, :max_size => 4) #=> true
     #
-    def add_job_flow_steps()
+    def add_job_flow_steps(job_flow_id, *steps)
+      request_hash = amazonize_steps(steps)
+      request_hash['JobFlowId'] = job_flow_id
+      link = generate_request("AddJobFlowSteps", request_hash)
+      request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
     #-----------------------------------------------------------------
@@ -381,7 +385,11 @@ module RightAws
     #          :status_code=>"Successful",
     #          :start_time=>Thu May 28 09:32:35 UTC 2009}]}
     #
-    def add_instance_groups()
+    def add_instance_groups(job_flow_id, *instance_groups)
+      request_hash = amazonize_instance_groups(instance_groups)
+      request_hash['JobFlowId'] = job_flow_id
+      link = generate_request("AddInstanceGroups", request_hash)
+      request_info(link, AddInstanceGroupParser.new(:logger => @logger))
     end
 
     # Incrementally describe Scaling Activities.
@@ -422,7 +430,16 @@ module RightAws
     #    true
     #  end
     #
-    def modify_instance_groups()
+    def modify_instance_groups(*args)
+      unless args.first.is_a?(Hash)
+        if args.length != 2
+          raise ArgumentError, "Must be given two arguments if not given a list of hashes"
+        end
+        args = [{:instance_group_id => args.first, :instance_count => args.last}]
+      end
+      request_hash = amazonise_list(args)
+      link = generate_request("ModifyInstanceGroups", request_hash)
+      request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
     #-----------------------------------------------------------------
@@ -553,9 +570,14 @@ module RightAws
       end
     end
 
-    class TerminateJobFlowsParser < RightAWSParser #:nodoc:
+    class RequestIdParser < RightAWSParser #:nodoc:
+      def tagend(name)
+        case name
+        when 'RequestId' then @result = @text
+        end
+      end
       def reset
-        @result = true
+        @result = nil
       end
     end
 
@@ -563,44 +585,13 @@ module RightAws
     #      PARSERS: Triggers
     #-----------------------------------------------------------------
 
-    class DescribeTriggersParser < RightAWSParser #:nodoc:
-      def tagstart(name, attributes)
-        case name
-        when 'member'
-          case @xmlpath
-          when 'DescribeTriggersResponse/DescribeTriggersResult/Triggers'
-            @item = { :dimensions => {} }
-          when 'DescribeTriggersResponse/DescribeTriggersResult/Triggers/member/Dimensions'
-            @dimension = {}
-          end
-        end
-      end
+    class AddInstanceGroupsParser < RightAWSParser #:nodoc:
       def tagend(name)
         case name
-        when 'AutoScalingGroupName'      then @item[:auto_scaling_group_name]      = @text
-        when 'MeasureName'               then @item[:measure_name]                 = @text
-        when 'CreatedTime'               then @item[:created_time]                 = @text
-        when 'BreachDuration'            then @item[:breach_duration]              = @text.to_i
-        when 'UpperBreachScaleIncrement' then @item[:upper_breach_scale_increment] = @text.to_i
-        when 'UpperThreshold'            then @item[:upper_threshold]              = @text.to_f
-        when 'LowerThreshold'            then @item[:lower_threshold]              = @text.to_f
-        when 'LowerBreachScaleIncrement' then @item[:lower_breach_scale_increment] = @text.to_i
-        when 'Period'                    then @item[:period]                       = @text.to_i
-        when 'Status'                    then @item[:status]                       = @text
-        when 'TriggerName'               then @item[:trigger_name]                 = @text
-        when 'Statistic'                 then @item[:statistic]                    = @text
-        when 'Unit'                      then @item[:unit]                         = @text
-        when 'Name'                      then @dimension[:name]                    = @text
-        when 'Value'                     then @dimension[:value]                   = @text
-        when 'member'
-          case @xmlpath
-          when "#@p/member/Dimensions" then @item[:dimensions][@dimension[:name]] = @dimension[:value]
-          when @p                      then @result << @item
-          end
+        when 'InstanceGroupId' then @result << @text
         end
       end
       def reset
-        @p      = 'DescribeTriggersResponse/DescribeTriggersResult/Triggers'
         @result = []
       end
     end
