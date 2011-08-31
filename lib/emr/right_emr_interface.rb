@@ -391,53 +391,38 @@ module RightAws
       link = generate_request("AddInstanceGroups", request_hash)
       request_info(link, AddInstanceGroupParser.new(:logger => @logger))
     end
+    
+    INSTANCE_GROUP_KEY_MAPPINGS = {
+      :instance_group_id => 'InstanceGroupId',
+      :instance_count => 'InstanceCount',
+    }
 
-    # Incrementally describe Scaling Activities.
-    # Returns the scaling activities specified for the given group. If the input list is empty, all the
-    # activities from the past six weeks will be returned. Activities will be sorted by completion time.
-    # Activities that have no completion time will be considered as using the most recent possible time.
+    # Modifies instance groups.
     #
-    # Optional params: +:max_records+, +:next_token+.
+    # The only modifiable parameter is instance count.
     #
-    #  # get max 100 first activities
-    #  as.incrementally_describe_scaling_activities('CentOS.5.1-c-array') #=>
-    #      {:scaling_activities=>
-    #        [{:cause=>
-    #            "At 2009-05-28 10:11:35Z trigger kd.tr.1 breached high threshold value for
-    #             CPUUtilization, 10.0, adjusting the desired capacity from 1 to 2.  At 2009-05-28 10:11:35Z
-    #             a breaching trigger explicitly set group desired capacity changing the desired capacity
-    #             from 1 to 2.  At 2009-05-28 10:11:40Z an instance was started in response to a difference
-    #             between desired and actual capacity, increasing the capacity from 1 to 2.",
-    #          :activity_id=>"067c9abb-f8a7-4cf8-8f3c-dc6f280457c4",
-    #          :progress=>0,
-    #          :description=>"Launching a new EC2 instance",
-    #          :status_code=>"InProgress",
-    #          :start_time=>Thu May 28 10:11:40 UTC 2009},
-    #         {:end_time=>Thu May 28 09:35:23 UTC 2009,
-    #          :cause=>
-    #            "At 2009-05-28 09:31:21Z a user request created an AutoScalingGroup changing the desired
-    #             capacity from 0 to 1.  At 2009-05-28 09:32:35Z an instance was started in response to a
-    #             difference between desired and actual capacity, increasing the capacity from 0 to 1.",
-    #          :activity_id=>"90d506ba-1b75-4d29-8739-0a75b1ba8030",
-    #          :progress=>100,
-    #          :description=>"Launching a new EC2 instance",
-    #          :status_code=>"Successful",
-    #          :start_time=>Thu May 28 09:32:35 UTC 2009}]}
+    # An instance group may only be modified when the job flow is running
+    # or waiting. Additionally, hadoop 0.20 is required to resize job flows.
     #
-    #  # list by 5 records
-    #  incrementally_describe_scaling_activities('CentOS.5.1-c-array', :max_records => 5) do |response|
-    #    puts response.inspect
-    #    true
-    #  end
+    #  # general syntax
+    #  emr.modify_instance_groups(
+    #    {:instance_group_id => 'ig-P2OPM2L9ZQ4P', :instance_count => 5},
+    #    {:instance_group_id => 'ig-J82ML0M94A7E', :instance_count => 1}
+    #  ) #=> true
+    #
+    #  # shortcut syntax
+    #  emr.modify_instance_groups('ig-P2OPM2L9ZQ4P', 5) #=> true
+    #
+    # Shortcut syntax supports modifying only one instance group at a time.
     #
     def modify_instance_groups(*args)
       unless args.first.is_a?(Hash)
         if args.length != 2
-          raise ArgumentError, "Must be given two arguments if not given a list of hashes"
+          raise ArgumentError, "Must be given two arguments if arguments are not hashes"
         end
         args = [{:instance_group_id => args.first, :instance_count => args.last}]
       end
-      request_hash = amazonise_list(args)
+      request_hash = amazonize_list_with_key_mapping('InstanceGroups.member', INSTANCE_GROUP_KEY_MAPPINGS, args)
       link = generate_request("ModifyInstanceGroups", request_hash)
       request_info(link, RequestIdParser.new(:logger => @logger))
     end
