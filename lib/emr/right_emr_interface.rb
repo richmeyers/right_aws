@@ -557,7 +557,7 @@ module RightAws
     class RequestIdParser < RightAWSParser #:nodoc:
       def tagend(name)
         case name
-        when 'RequestId' then @result = @text
+        when 'RequestId' then @result = true
         end
       end
       def reset
