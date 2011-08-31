@@ -520,32 +520,32 @@ module RightAws
           @result[:job_flows] << @item
         else
           case name
-          when 'AmiVersion'             then @item[:ami_version]              = @text
-          when 'JobFlowId'            then @item[:job_flow_id]             = @text
-          when 'LogUri'                 then @item[:log_uri]                  = @text
-          when 'Name'                 then @item[:name]                  = @text
+          when 'AmiVersion' then @item[:ami_version] = @text
+          when 'JobFlowId' then @item[:job_flow_id] = @text
+          when 'LogUri' then @item[:log_uri] = @text
+          when 'Name' then @item[:name] = @text
           
           # JobFlowExecutionStatusDetail
-          when 'CreationDateTime'                 then @item[:creation_date_time]                  = @text
-          when 'EndDateTime'                 then @item[:end_date_time]                  = @text
-          when 'LastStateChangeReason'                 then @item[:last_state_change_reason]                  = @text
-          when 'ReadyDateTime'                 then @item[:ready_date_time]                  = @text
-          when 'StartDateTime'                 then @item[:start_date_time]                  = @text
-          when 'State'                 then @item[:state]                  = @text
+          when 'CreationDateTime' then @item[:creation_date_time] = @text
+          when 'EndDateTime' then @item[:end_date_time] = @text
+          when 'LastStateChangeReason' then @item[:last_state_change_reason] = @text
+          when 'ReadyDateTime' then @item[:ready_date_time] = @text
+          when 'StartDateTime' then @item[:start_date_time] = @text
+          when 'State' then @item[:state] = @text
           
           # JobFlowInstancesDetail
-          when 'Ec2KeyName'                 then @item[:ec2_key_name]                  = @text
-          when 'HadoopVersion'                 then @item[:hadoop_version]                  = @text
-          when 'InstanceCount'                 then @item[:instance_count]                  = @text.to_i
-          when 'KeepJobFlowAliveWhenNoSteps'                 then @item[:keep_job_flow_alive_when_no_steps]                  = case @text when 'true' then true when 'false' then false else @text end
-          when 'MasterInstanceId'                 then @item[:master_instance_id]                  = @text
-          when 'MasterInstanceType'                 then @item[:master_instance_type]                  = @text
-          when 'MasterPublicDnsName'                 then @item[:master_public_dns_name]                  = @text
-          when 'NormalizedInstanceHours'                 then @item[:normalized_instance_hours]                  = @text.to_i
+          when 'Ec2KeyName' then @item[:ec2_key_name] = @text
+          when 'HadoopVersion' then @item[:hadoop_version] = @text
+          when 'InstanceCount' then @item[:instance_count] = @text.to_i
+          when 'KeepJobFlowAliveWhenNoSteps' then @item[:keep_job_flow_alive_when_no_steps] = case @text when 'true' then true when 'false' then false else @text end
+          when 'MasterInstanceId' then @item[:master_instance_id] = @text
+          when 'MasterInstanceType' then @item[:master_instance_type] = @text
+          when 'MasterPublicDnsName' then @item[:master_public_dns_name] = @text
+          when 'NormalizedInstanceHours' then @item[:normalized_instance_hours] = @text.to_i
           # Placement
-          when 'AvailabilityZone'                 then @item[:availability_zone]                  = @text
-          when 'SlaveInstanceType'                 then @item[:slave_instance_type]                  = @text
-          when 'TerminationProtected'                 then @item[:termination_protected]                  = case @text when 'true' then true when 'false' then false else @text end
+          when 'AvailabilityZone' then @item[:availability_zone] = @text
+          when 'SlaveInstanceType' then @item[:slave_instance_type] = @text
+          when 'TerminationProtected' then @item[:termination_protected] = case @text when 'true' then true when 'false' then false else @text end
           end
         end
       end
