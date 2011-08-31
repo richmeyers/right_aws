@@ -138,7 +138,6 @@ module RightAws
       request_hash.update(amazonize_bootstrap_actions(options[:bootstrap_actions]))
       request_hash.update(amazonize_instance_groups(options[:instance_groups]))
       request_hash.update(amazonize_steps(options[:steps]))
-      p request_hash
       link = generate_request("RunJobFlow", request_hash)
       request_info(link, RunJobFlowParser.new(:logger => @logger))
     end
