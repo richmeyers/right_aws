@@ -25,7 +25,7 @@ module RightAws
 
   # = RightAWS::EmrInterface -- RightScale Amazon Elastic Map Reduce interface
   #
-  # The RightAws::AsInterface class provides a complete interface to Amazon
+  # The RightAws::EmrInterface class provides a complete interface to Amazon
   # Elastic Map Reduce service.
   #
   # For explanations of the semantics of each call, please refer to Amazon's
@@ -77,16 +77,22 @@ module RightAws
       @@bench.service
     end
 
-    # Create a new handle to an CSLS account. All handles share the same per process or per thread
-    # HTTP connection to Amazon CSLS. Each handle is for a specific account. The params have the
-    # following options:
-    # * <tt>:endpoint_url</tt> a fully qualified url to Amazon API endpoint (this overwrites: :server, :port, :service, :protocol). Example: 'https://autoscaling.amazonaws.com/'
-    # * <tt>:server</tt>: AS service host, default: DEFAULT_HOST
-    # * <tt>:port</tt>: AS service port, default: DEFAULT_PORT
+    # Create a new handle to a EMR service.
+    #
+    # All handles share the same per process or per thread HTTP connection
+    # to EMR. Each handle is for a specific account. The params have
+    # the following options:
+    #
+    # * <tt>:endpoint_url</tt> a fully qualified url to Amazon API endpoint
+    #   (this overwrites: :server, :port, :service, :protocol). Example:
+    #   'https://elasticmapreduce.amazonaws.com'
+    # * <tt>:server</tt>: EMR service host, default: DEFAULT_HOST
+    # * <tt>:port</tt>: EMR service port, default: DEFAULT_PORT
     # * <tt>:protocol</tt>: 'http' or 'https', default: DEFAULT_PROTOCOL
     # * <tt>:logger</tt>: for log messages, default: RAILS_DEFAULT_LOGGER else STDOUT
-    # * <tt>:signature_version</tt>:  The signature version : '0','1' or '2'(default)
-    # * <tt>:cache</tt>: true/false(default): describe_auto_scaling_groups
+    #
+    #  emr = RightAws::EmrInterface.new('xxxxxxxxxxxxxxxxxxxxx','xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    #    {:logger => Logger.new('/tmp/x.log')}) #=> #<RightAws::EmrInterface::0xb7b3c30c>
     #
     def initialize(aws_access_key_id=nil, aws_secret_access_key=nil, params={})
       init({ :name                => 'EMR',
@@ -104,14 +110,14 @@ module RightAws
       generate_request_impl(:get, action, params )
     end
 
-      # Sends request to Amazon and parses the response
-      # Raises AwsError if any banana happened
+    # Sends request to Amazon and parses the response
+    # Raises AwsError if any banana happened
     def request_info(request, parser)  #:nodoc:
       request_info_impl(:aass_connection, @@bench, request, parser)
     end
 
     #-----------------------------------------------------------------
-    #      Auto Scaling Groups
+    #      Job Flows
     #-----------------------------------------------------------------
 
     EMR_INSTANCES_KEY_MAPPING = {                                                           # :nodoc:
@@ -219,6 +225,24 @@ module RightAws
       request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
+    # Modifies instance groups.
+    #
+    # The only modifiable parameter is instance count.
+    #
+    # An instance group may only be modified when the job flow is running
+    # or waiting. Additionally, hadoop 0.20 is required to resize job flows.
+    #
+    #  # general syntax
+    #  emr.modify_instance_groups(
+    #    {:instance_group_id => 'ig-P2OPM2L9ZQ4P', :instance_count => 5},
+    #    {:instance_group_id => 'ig-J82ML0M94A7E', :instance_count => 1}
+    #  ) #=> true
+    #
+    #  # shortcut syntax
+    #  emr.modify_instance_groups('ig-P2OPM2L9ZQ4P', 5) #=> true
+    #
+    # Shortcut syntax supports modifying only one instance group at a time.
+    #
     # Adjusts the desired size of the Capacity Group by using scaling actions, as necessary. When
     # adjusting the size of the group downward, it is not possible to define which EC2 instances will be
     # terminated. This also applies to any auto-scaling decisions that might result in the termination of
@@ -271,7 +295,7 @@ module RightAws
     end
 
     #-----------------------------------------------------------------
-    #      Scaling Activities
+    #      Instance Groups
     #-----------------------------------------------------------------
 
     # Describe all Scaling Activities.
@@ -416,7 +440,7 @@ module RightAws
     end
 
     #-----------------------------------------------------------------
-    #      PARSERS: Auto Scaling Groups
+    #      PARSERS: Run Job Flow
     #-----------------------------------------------------------------
 
     class RunJobFlowParser < RightAWSParser #:nodoc:
@@ -431,7 +455,7 @@ module RightAws
     end
 
     #-----------------------------------------------------------------
-    #      PARSERS: Job Flows
+    #      PARSERS: Describe Job Flows
     #-----------------------------------------------------------------
 
     class DescribeJobFlowsParser < RightAWSParser #:nodoc:
@@ -543,6 +567,10 @@ module RightAws
       end
     end
 
+    #-----------------------------------------------------------------
+    #      PARSERS: Request Id (only)
+    #-----------------------------------------------------------------
+
     class RequestIdParser < RightAWSParser #:nodoc:
       def tagend(name)
         case name
@@ -555,7 +583,7 @@ module RightAws
     end
 
     #-----------------------------------------------------------------
-    #      PARSERS: Triggers
+    #      PARSERS: Add Instance Groups
     #-----------------------------------------------------------------
 
     class AddInstanceGroupsParser < RightAWSParser #:nodoc:
