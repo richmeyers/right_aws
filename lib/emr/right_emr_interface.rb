@@ -225,32 +225,18 @@ module RightAws
       request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
-    # Modifies instance groups.
+    # Locks a job flow so the EC2 instances in the cluster cannot be
+    # terminated by user intervention, an API call, or in the event of a
+    # job flow error. Cluster will still terminate upon successful completion
+    # of the job flow.
     #
-    # The only modifiable parameter is instance count.
-    #
-    # An instance group may only be modified when the job flow is running
-    # or waiting. Additionally, hadoop 0.20 is required to resize job flows.
-    #
-    #  # general syntax
-    #  emr.modify_instance_groups(
-    #    {:instance_group_id => 'ig-P2OPM2L9ZQ4P', :instance_count => 5},
-    #    {:instance_group_id => 'ig-J82ML0M94A7E', :instance_count => 1}
+    #  emr.set_termination_protection(
+    #    'j-9K18HM82Q0AE7', 'j-2QE0KHA1LP4GS', :termination_protected => true
     #  ) #=> true
     #
-    #  # shortcut syntax
-    #  emr.modify_instance_groups('ig-P2OPM2L9ZQ4P', 5) #=> true
+    # Protection can be enabled using the shortcut syntax:
     #
-    # Shortcut syntax supports modifying only one instance group at a time.
-    #
-    # Adjusts the desired size of the Capacity Group by using scaling actions, as necessary. When
-    # adjusting the size of the group downward, it is not possible to define which EC2 instances will be
-    # terminated. This also applies to any auto-scaling decisions that might result in the termination of
-    # instances.
-    #
-    # Returns +true+ or raises an exception.
-    #
-    #  as.set_desired_capacity('CentOS.5.1-c',3) #=> 3
+    #  emr.set_termination_protection('j-9K18HM82Q0AE7') #=> true
     #
     def set_termination_protection(*job_flow_ids_and_options)
       job_flow_ids, options = AwsUtils::split_items_and_params(job_flow_ids_and_options)
@@ -261,8 +247,13 @@ module RightAws
       when false
         'false'
       when nil
-        # default is to protect
-        'true'
+        # if :termination_protected => nil was given, then unprotect;
+        # if no :termination_protected option was given, protect
+        if options.has_key?(:termination_protected)
+          'false'
+        else
+          'true'
+        end
       else
         # pass value through
         value
