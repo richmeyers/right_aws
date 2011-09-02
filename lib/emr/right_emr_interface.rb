@@ -139,8 +139,8 @@ module RightAws
     BOOTSTRAP_ACTION_KEY_MAPPING = {                                                           # :nodoc:
       :name => 'Name',
       # ScriptBootstrapActionConfig
-      :args => 'Args',
-      :path => 'Path',
+      :args => 'ScriptBootstrapAction.Args',
+      :path => 'ScriptBootstrapAction.Path',
     }
 
     INSTANCE_GROUP_KEY_MAPPING = {                                                           # :nodoc:
@@ -167,11 +167,78 @@ module RightAws
       :value => 'Value',
     }
 
-    # Describe auto scaling groups.
-    # Returns a full description of the AutoScalingGroups from the given list.
-    # This includes all EC2 instances that are members of the group. If a list
-    # of names is not provided, then the full details of all AutoScalingGroups
-    # is returned. This style conforms to the EC2 DescribeInstances API behavior.
+    # Creates and starts running a new job flow.
+    #
+    # The job flow will run the steps specified and terminate (unless
+    # keep alive option is set).
+    #
+    # A maximum of 256 steps are allowed in a job flow.
+    #
+    # At least the name, instance types, instance count and one step
+    # must be specified.
+    #
+    #  # simple usage:
+    #  emr.run_job_flow(
+    #    :name => 'job flow 1',
+    #    :master_instance_type => 'm1.large',
+    #    :slave_instance_type => 'm1.large',
+    #    :instance_count => 5,
+    #    :log_uri => 's3n://bucket/path/to/logs',
+    #    :steps => [{
+    #      :name => 'step 1',
+    #      :jar => 's3n://bucket/path/to/code.jar',
+    #      :main_class => 'com.foobar.emr.Step1',
+    #      :args => ['arg', 'arg'],
+    #    }]) #=> "j-9K18HM82Q0AE7"
+    #
+    #  # advanced usage:
+    #  emr.run_job_flow(
+    #    :name => 'job flow 1',
+    #    :ec2_key_name => 'gsg-keypair',
+    #    :hadoop_version => '0.20',
+    #    :instance_groups => [{
+    #      :bid_price => '0.1',
+    #      :instance_count => '2',
+    #      :instance_role => 'MASTER',
+    #      :instance_type => 'm1.small',
+    #      :market => 'SPOT',
+    #      :name => 'master group',
+    #    }, {
+    #      :bid_price => '0.1',
+    #      :instance_count => '2',
+    #      :instance_role => 'CORE',
+    #      :instance_type => 'm1.small',
+    #      :market => 'SPOT',
+    #      :name => 'core group',
+    #    }, {
+    #      :bid_price => '0.1',
+    #      :instance_count => '2',
+    #      :instance_role => 'TASK',
+    #      :instance_type => 'm1.small',
+    #      :market => 'SPOT',
+    #      :name => 'task group',
+    #    }],
+    #    :keep_job_flow_alive_when_no_steps => true,
+    #    :availability_zone => 'us-east-1a',
+    #    :termination_protected => true,
+    #    :log_uri => 's3n://bucket/path/to/logs',
+    #    :steps => [{
+    #      :name => 'step 1',
+    #      :jar => 's3n://bucket/path/to/code.jar',
+    #      :main_class => 'com.foobar.emr.Step1',
+    #      :args => ['arg', 'arg'],
+    #      :properties => {
+    #        'property' => 'value',
+    #      },
+    #      :action_on_failure => 'TERMINATE_JOB_FLOW',
+    #    }],
+    #    :additional_info => '',
+    #    :bootstrap_actions => [{
+    #      :name => 'bootstrap action 1',
+    #      :path => 's3n://bucket/path/to/bootstrap',
+    #      :args => ['hello', 'world'],
+    #    }],
+    #  ) #=> "j-9K18HM82Q0AE7"
     #
     def run_job_flow(options={})
       request_hash = amazonize_run_job_flow(options)
@@ -321,7 +388,7 @@ module RightAws
       request_info(link, AddInstanceGroupParser.new(:logger => @logger))
     end
     
-    INSTANCE_GROUP_KEY_MAPPINGS = {
+    MODIFY_INSTANCE_GROUP_KEY_MAPPINGS = {
       :instance_group_id => 'InstanceGroupId',
       :instance_count => 'InstanceCount',
     }
@@ -351,7 +418,7 @@ module RightAws
         end
         args = [{:instance_group_id => args.first, :instance_count => args.last}]
       end
-      request_hash = amazonize_list_with_key_mapping('InstanceGroups.member', INSTANCE_GROUP_KEY_MAPPINGS, args)
+      request_hash = amazonize_list_with_key_mapping('InstanceGroups.member', MODIFY_INSTANCE_GROUP_KEY_MAPPINGS, args)
       link = generate_request("ModifyInstanceGroups", request_hash)
       request_info(link, RequestIdParser.new(:logger => @logger))
     end
@@ -373,11 +440,11 @@ module RightAws
       result = {}
       unless bootstrap_actions.right_blank?
         bootstrap_actions.each_with_index do |item, index|
-          mapping.each do |local_name, remote_name|
+          BOOTSTRAP_ACTION_KEY_MAPPING.each do |local_name, remote_name|
             value = item[local_name]
             case local_name
             when :args
-              result.update(amazonize_list("#{key}.#{index+1}.#{remote_name}", value))
+              result.update(amazonize_list("#{key}.#{index+1}.#{remote_name}.member", value))
             else
               next if value.nil?
               result["#{key}.#{index+1}.#{remote_name}"] = value
@@ -388,17 +455,19 @@ module RightAws
       result
     end
 
-    def amazonize_instance_groups(hash, key = 'Instances.InstanceGroups') # :nodoc:
+    def amazonize_instance_groups(instance_groups, key = 'Instances.InstanceGroups') # :nodoc:
       result = {}
-      unless hash.right_blank?
-        mapping.each do |local_name, remote_name|
-          value = hash[local_name]
-          case local_name
-          when :instance_groups
-            result.update(amazonize_list_with_key_mapping("#{key}.#{remote_name}", INSTANCE_GROUP_KEY_MAPPING, value))
-          else
-            next if value.nil?
-            result["#{key}.#{remote_name}"] = value
+      unless instance_groups.right_blank?
+        instance_groups.each_with_index do |item, index|
+          INSTANCE_GROUP_KEY_MAPPING.each do |local_name, remote_name|
+            value = item[local_name]
+            case local_name
+            when :instance_groups
+              result.update(amazonize_list_with_key_mapping("#{key}.member.#{index+1}.#{remote_name}", INSTANCE_GROUP_KEY_MAPPING, value))
+            else
+              next if value.nil?
+              result["#{key}.member.#{index+1}.#{remote_name}"] = value
+            end
           end
         end
       end
@@ -419,7 +488,7 @@ module RightAws
               list = value.inject([]) do |l, (k, v)|
                 l << {:key => k, :value => v}
               end
-              result.update(amazonize_list_with_key_mappings("#{key}.#{index+1}.#{remote_name}", KEY_VALUE_KEY_MAPPINGS, list))
+              result.update(amazonize_list_with_key_mapping("#{key}.#{index+1}.#{remote_name}.member", KEY_VALUE_KEY_MAPPINGS, list))
             else
               next if value.nil?
               result["#{key}.#{index+1}.#{remote_name}"] = value
