@@ -198,7 +198,7 @@ module RightAws
     #    :hadoop_version => '0.20',
     #    :instance_groups => [{
     #      :bid_price => '0.1',
-    #      :instance_count => '2',
+    #      :instance_count => '1',
     #      :instance_role => 'MASTER',
     #      :instance_type => 'm1.small',
     #      :market => 'SPOT',
