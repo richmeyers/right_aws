@@ -394,6 +394,10 @@ module RightAws
       request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
+    #-----------------------------------------------------------------
+    #      Steps
+    #-----------------------------------------------------------------
+
     # Adds steps to a running job flow.
     #
     # A maximum of 256 steps are allowed in a job flow. Steps can only be
