@@ -668,6 +668,13 @@ module RightAws
       result
     end
 
+    # Transform a hash of parameters into a hash suitable for sending
+    # to Amazon using a key mapping.
+    #
+    #  amazonize_hash_with_key_mapping('Group.Filter',
+    #    {:some_param => 'SomeParam'},
+    #    {:some_param => 'value'}) #=> {'Group.Filter.SomeParam' => 'value'}
+    #
     def amazonize_hash_with_key_mapping(key, mapping, hash, options={})
       result = {}
       unless hash.right_blank?
@@ -680,6 +687,15 @@ module RightAws
       result
     end
 
+    # Transform a list of hashes of parameters into a hash suitable for sending
+    # to Amazon using a key mapping.
+    #
+    #  amazonize_list_with_key_mapping('Group.Filter',
+    #    [{:some_param => 'SomeParam'}, {:some_param => 'SomeParam'}],
+    #    {:some_param => 'value'}) #=>
+    #      {'Group.Filter.1.SomeParam' => 'value',
+    #       'Group.Filter.2.SomeParam' => 'value'}
+    #
     def amazonize_list_with_key_mapping(key, mapping, list, options={})
       result = {}
       unless list.right_blank?
