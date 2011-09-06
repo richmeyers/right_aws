@@ -249,16 +249,78 @@ module RightAws
       request_info(link, RunJobFlowParser.new(:logger => @logger))
     end
 
-    # Creates a new auto scaling group with the specified name.
-    # Returns +true+ or raises an exception.
+    # Returns a list of job flows that match all of supplied parameters.
     #
-    # Options: +:min_size+, +:max_size+, +:cooldown+, +:load_balancer_names+
+    # Without parameters, returns job flows started in the last two weeks
+    # or running job flows started in the last two months.
     #
-    #  as.create_auto_scaling_group('CentOS.5.1-c-array', 'CentOS.5.1-c', 'us-east-1c',
-    #                               :min_size => 2,
-    #                               :max_size => 5)  #=> true
+    # Regardless of parameters, only jobs started in the last two months
+    # are returned.
     #
-    # Amazon's notice: Constraints: Restricted to one Availability Zone
+    #  # default list:
+    #  emr.describe_job_flows #=> [
+    #    {:keep_job_flow_alive_when_no_steps=>false,
+    #      :log_uri=>"s3n://bucket/path/to/logs",
+    #      :master_instance_type=>"m1.small",
+    #      :availability_zone=>"us-east-1d",
+    #      :last_state_change_reason=>"Steps completed",
+    #      :termination_protected=>false,
+    #      :master_instance_id=>"i-1fe51278",
+    #      :instance_count=>1,
+    #      :ready_date_time=>"2011-08-31T18:58:58Z",
+    #      :bootstrap_actions=>[],
+    #      :master_public_dns_name=>"ec2-184-78-29-127.compute-1.amazonaws.com",
+    #      :instance_groups=>
+    #       [{:instance_request_count=>1,
+    #         :last_state_change_reason=>"Job flow terminated",
+    #         :instance_role=>"MASTER",
+    #         :ready_date_time=>"2011-08-31T18:58:56Z",
+    #         :instance_running_count=>0,
+    #         :start_date_time=>"2011-08-31T18:58:19Z",
+    #         :market=>"ON_DEMAND",
+    #         :creation_date_time=>"2011-08-31T18:55:36Z",
+    #         :name=>"master",
+    #         :instance_group_id=>"ig-1D91GQR7A9H2K",
+    #         :state=>"ENDED",
+    #         :instance_type=>"m1.small",
+    #         :end_date_time=>"2011-08-31T19:01:09Z"}],
+    #      :start_date_time=>"2011-08-31T18:58:58Z",
+    #      :steps=>
+    #       [{:jar=>"s3n://bucket/path/to/code.jar",
+    #         :main_class=>"com.foobar.emr.Step1",
+    #         :start_date_time=>"2011-08-31T18:58:58Z",
+    #         :properties=>{},
+    #         :args=>[],
+    #         :creation_date_time=>"2011-08-31T18:55:36Z",
+    #         :action_on_failure=>"TERMINATE_JOB_FLOW",
+    #         :name=>"step 1",
+    #         :state=>"COMPLETED",
+    #         :end_date_time=>"2011-08-31T19:00:34Z"}],
+    #      :normalized_instance_hours=>1,
+    #      :ami_version=>"1.0",
+    #      :creation_date_time=>"2011-08-31T18:55:36Z",
+    #      :name=>"jobflow 1",
+    #      :hadoop_version=>"0.18",
+    #      :job_flow_id=>"j-9K18HM82Q0AE7",
+    #      :state=>"COMPLETED",
+    #      :end_date_time=>"2011-08-31T19:01:09Z"}]
+    #
+    #  # describe specific job flows:
+    #  emr.describe_job_flows('j-9K18HM82Q0AE7', 'j-2QE0KHA1LP4GS') #=> [...]
+    #
+    #  # specify parameters:
+    #  emr.describe_job_flows(
+    #    :created_after => Time.now - 86400,
+    #    :created_before => Time.now - 3600,
+    #    :job_flow_ids => ['j-9K18HM82Q0AE7', 'j-2QE0KHA1LP4GS'],
+    #    :job_flow_states => ['RUNNING']
+    #  ) #=> [...]
+    #
+    #  # combined job flow list and parameters syntax:
+    #  emr.describe_job_flows('j-9K18HM82Q0AE7', 'j-2QE0KHA1LP4GS',
+    #    :job_flow_states => ['RUNNING']
+    #  ) #=> [...]
+    #
     def describe_job_flows(*job_flow_ids_and_options)
       job_flow_ids, options = AwsUtils::split_items_and_params(job_flow_ids_and_options)
       # merge job flow ids passed in as arguments and in options
@@ -280,6 +342,8 @@ module RightAws
       unless (job_flow_states = options[:job_flow_states]).right_blank?
         request_hash = amazonize_list("JobFlowStates.member", job_flow_states)
       end
+      request_hash['CreatedAfter'] = AwsUtils::utc_iso8601(options[:created_after]) unless options[:created_after].right_blank?
+      request_hash['CreatedBefore'] = AwsUtils::utc_iso8601(options[:created_before]) unless options[:created_before].right_blank?
       link = generate_request("DescribeJobFlows", request_hash)
       request_cache_or_info(:describe_job_flows, link,  DescribeJobFlowsParser, @@bench, nil)
     end
@@ -590,7 +654,7 @@ module RightAws
           when 'MainClass' then @step[:main_class] = @text
           end
         when %r{/JobFlows/member$}
-          @result[:job_flows] << @item
+          @result << @item
         else
           case name
           when 'AmiVersion' then @item[:ami_version] = @text
@@ -623,7 +687,7 @@ module RightAws
         end
       end
       def reset
-        @result = { :job_flows => []}
+        @result = []
       end
     end
 
