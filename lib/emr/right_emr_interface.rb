@@ -354,7 +354,7 @@ module RightAws
     #
     def terminate_job_flows(*job_flow_ids)
       link = generate_request("TerminateJobFlows", amazonize_list('JobFlowIds.member', job_flow_ids))
-      request_info(link, RequestIdParser.new(:logger => @logger))
+      request_info(link, RightHttp2xxParser.new(:logger => @logger))
     end
 
     # Locks a job flow so the EC2 instances in the cluster cannot be
@@ -391,7 +391,7 @@ module RightAws
         value
       end
       link = generate_request("SetTerminationProtection", request_hash)
-      request_info(link, RequestIdParser.new(:logger => @logger))
+      request_info(link, RightHttp2xxParser.new(:logger => @logger))
     end
 
     #-----------------------------------------------------------------
@@ -421,7 +421,7 @@ module RightAws
       request_hash = amazonize_steps(steps)
       request_hash['JobFlowId'] = job_flow_id
       link = generate_request("AddJobFlowSteps", request_hash)
-      request_info(link, RequestIdParser.new(:logger => @logger))
+      request_info(link, RightHttp2xxParser.new(:logger => @logger))
     end
 
     #-----------------------------------------------------------------
@@ -481,7 +481,7 @@ module RightAws
       end
       request_hash = amazonize_list_with_key_mapping('InstanceGroups.member', MODIFY_INSTANCE_GROUP_KEY_MAPPINGS, args)
       link = generate_request("ModifyInstanceGroups", request_hash)
-      request_info(link, RequestIdParser.new(:logger => @logger))
+      request_info(link, RightHttp2xxParser.new(:logger => @logger))
     end
     
     private
@@ -685,21 +685,6 @@ module RightAws
       end
       def reset
         @result = []
-      end
-    end
-
-    #-----------------------------------------------------------------
-    #      PARSERS: Request Id (only)
-    #-----------------------------------------------------------------
-
-    class RequestIdParser < RightAWSParser #:nodoc:
-      def tagend(name)
-        case name
-        when 'RequestId' then @result = true
-        end
-      end
-      def reset
-        @result = nil
       end
     end
 
