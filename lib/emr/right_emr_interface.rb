@@ -113,7 +113,7 @@ module RightAws
     # Sends request to Amazon and parses the response
     # Raises AwsError if any banana happened
     def request_info(request, parser)  #:nodoc:
-      request_info_impl(:aass_connection, @@bench, request, parser)
+      request_info_impl(:emr_connection, @@bench, request, parser)
     end
 
     #-----------------------------------------------------------------
