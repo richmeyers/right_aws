@@ -348,8 +348,9 @@ module RightAws
       request_cache_or_info(:describe_job_flows, link,  DescribeJobFlowsParser, @@bench, nil)
     end
 
-    # Deletes all configuration for this auto scaling group and also deletes the group.
-    # Returns +true+ or raises an exception.
+    # Terminates specified job flows.
+    #
+    #  emr.terminate_job_flows('j-9K18HM82Q0AE7') #=> true
     #
     def terminate_job_flows(*job_flow_ids)
       link = generate_request("TerminateJobFlows", amazonize_list('JobFlowIds.member', job_flow_ids))
@@ -393,21 +394,24 @@ module RightAws
       request_info(link, RequestIdParser.new(:logger => @logger))
     end
 
-    # Updates the configuration for the given AutoScalingGroup. If MaxSize is lower than the current size,
-    # then there will be an implicit call to SetDesiredCapacity to set the group to the new MaxSize. The
-    # same is true for MinSize there will also be an implicit call to SetDesiredCapacity. All optional
-    # parameters are left unchanged if not passed in the request.
+    # Adds steps to a running job flow.
     #
-    # The new settings are registered upon the completion of this call. Any launch configuration settings
-    # will take effect on any triggers after this call returns. However, triggers that are currently in
-    # progress can not be affected. See key term Trigger.
-    # 
-    # Returns +true+ or raises an exception.
+    # A maximum of 256 steps are allowed in a job flow. Steps can only be
+    # added to job flows that are starting, bootstrapping, running or waiting.
     #
-    # Options: +:launch_configuration_name+, +:min_size+, +:max_size+, +:cooldown+, +:availability_zones+.
-    # (Amazon's notice: +:availability_zones+ is reserved for future use.)
+    # Step configuration options are the same as the ones accepted by
+    # run_job_flow.
     #
-    #  as.update_auto_scaling_group('CentOS.5.1-c', :min_size => 1, :max_size => 4) #=> true
+    #  emr.add_job_flow_steps('j-2QE0KHA1LP4GS', {
+    #    :name => 'step 1',
+    #    :jar => 's3n://bucket/path/to/code.jar',
+    #    :main_class => 'com.foobar.emr.Step1',
+    #    :args => ['arg', 'arg'],
+    #    :properties => {
+    #      'property' => 'value',
+    #    },
+    #    :action_on_failure => 'TERMINATE_JOB_FLOW',
+    #  }) #=> true
     #
     def add_job_flow_steps(job_flow_id, *steps)
       request_hash = amazonize_steps(steps)
@@ -420,30 +424,19 @@ module RightAws
     #      Instance Groups
     #-----------------------------------------------------------------
 
-    # Describe all Scaling Activities.
+    # Adds instance groups to a running job flow.
     #
-    #  describe_scaling_activities('CentOS.5.1-c-array') #=>
-    #        [{:cause=>
-    #            "At 2009-05-28 10:11:35Z trigger kd.tr.1 breached high threshold value for
-    #             CPUUtilization, 10.0, adjusting the desired capacity from 1 to 2.  At 2009-05-28 10:11:35Z
-    #             a breaching trigger explicitly set group desired capacity changing the desired capacity
-    #             from 1 to 2.  At 2009-05-28 10:11:40Z an instance was started in response to a difference
-    #             between desired and actual capacity, increasing the capacity from 1 to 2.",
-    #          :activity_id=>"067c9abb-f8a7-4cf8-8f3c-dc6f280457c4",
-    #          :progress=>0,
-    #          :description=>"Launching a new EC2 instance",
-    #          :status_code=>"InProgress",
-    #          :start_time=>Thu May 28 10:11:40 UTC 2009},
-    #         {:end_time=>Thu May 28 09:35:23 UTC 2009,
-    #          :cause=>
-    #            "At 2009-05-28 09:31:21Z a user request created an AutoScalingGroup changing the desired
-    #             capacity from 0 to 1.  At 2009-05-28 09:32:35Z an instance was started in response to a
-    #             difference between desired and actual capacity, increasing the capacity from 0 to 1.",
-    #          :activity_id=>"90d506ba-1b75-4d29-8739-0a75b1ba8030",
-    #          :progress=>100,
-    #          :description=>"Launching a new EC2 instance",
-    #          :status_code=>"Successful",
-    #          :start_time=>Thu May 28 09:32:35 UTC 2009}]}
+    # Instance group configuration options are the same as the ones accepted
+    # by run_job_flow.
+    #
+    #  emr.add_instance_groups('j-2QE0KHA1LP4GS', {
+    #    :bid_price => '0.1',
+    #    :instance_count => '2',
+    #    :instance_role => 'CORE',
+    #    :instance_type => 'm1.small',
+    #    :market => 'SPOT',
+    #    :name => 'core group',
+    #  }) #=> true
     #
     def add_instance_groups(job_flow_id, *instance_groups)
       request_hash = amazonize_instance_groups(instance_groups)
