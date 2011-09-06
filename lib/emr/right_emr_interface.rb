@@ -247,6 +247,8 @@ module RightAws
       request_hash.update(amazonize_steps(options[:steps]))
       link = generate_request("RunJobFlow", request_hash)
       request_info(link, RunJobFlowParser.new(:logger => @logger))
+    rescue
+      on_exception
     end
 
     # Returns a list of job flows that match all of supplied parameters.
@@ -346,6 +348,8 @@ module RightAws
       request_hash['CreatedBefore'] = AwsUtils::utc_iso8601(options[:created_before]) unless options[:created_before].right_blank?
       link = generate_request("DescribeJobFlows", request_hash)
       request_cache_or_info(:describe_job_flows, link,  DescribeJobFlowsParser, @@bench, nil)
+    rescue
+      on_exception
     end
 
     # Terminates specified job flows.
@@ -355,6 +359,8 @@ module RightAws
     def terminate_job_flows(*job_flow_ids)
       link = generate_request("TerminateJobFlows", amazonize_list('JobFlowIds.member', job_flow_ids))
       request_info(link, RightHttp2xxParser.new(:logger => @logger))
+    rescue
+      on_exception
     end
 
     # Locks a job flow so the EC2 instances in the cluster cannot be
@@ -392,6 +398,8 @@ module RightAws
       end
       link = generate_request("SetTerminationProtection", request_hash)
       request_info(link, RightHttp2xxParser.new(:logger => @logger))
+    rescue
+      on_exception
     end
 
     #-----------------------------------------------------------------
@@ -422,6 +430,8 @@ module RightAws
       request_hash['JobFlowId'] = job_flow_id
       link = generate_request("AddJobFlowSteps", request_hash)
       request_info(link, RightHttp2xxParser.new(:logger => @logger))
+    rescue
+      on_exception
     end
 
     #-----------------------------------------------------------------
@@ -447,6 +457,8 @@ module RightAws
       request_hash['JobFlowId'] = job_flow_id
       link = generate_request("AddInstanceGroups", request_hash)
       request_info(link, AddInstanceGroupParser.new(:logger => @logger))
+    rescue
+      on_exception
     end
     
     MODIFY_INSTANCE_GROUP_KEY_MAPPINGS = {
@@ -482,6 +494,8 @@ module RightAws
       request_hash = amazonize_list_with_key_mapping('InstanceGroups.member', MODIFY_INSTANCE_GROUP_KEY_MAPPINGS, args)
       link = generate_request("ModifyInstanceGroups", request_hash)
       request_info(link, RightHttp2xxParser.new(:logger => @logger))
+    rescue
+      on_exception
     end
     
     private
