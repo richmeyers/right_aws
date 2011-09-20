@@ -443,20 +443,24 @@ module RightAws
     # Instance group configuration options are the same as the ones accepted
     # by run_job_flow.
     #
+    # Only task instance groups may be added at runtime.
+    # Instance groups cannot be added to job flows that have only a master
+    # instance (i.e. 1 instance in total).
+    #
     #  emr.add_instance_groups('j-2QE0KHA1LP4GS', {
     #    :bid_price => '0.1',
     #    :instance_count => '2',
-    #    :instance_role => 'CORE',
+    #    :instance_role => 'TASK',
     #    :instance_type => 'm1.small',
     #    :market => 'SPOT',
     #    :name => 'core group',
     #  }) #=> true
     #
     def add_instance_groups(job_flow_id, *instance_groups)
-      request_hash = amazonize_instance_groups(instance_groups)
+      request_hash = amazonize_instance_groups(instance_groups, 'InstanceGroups')
       request_hash['JobFlowId'] = job_flow_id
       link = generate_request("AddInstanceGroups", request_hash)
-      request_info(link, AddInstanceGroupParser.new(:logger => @logger))
+      request_info(link, AddInstanceGroupsParser.new(:logger => @logger))
     rescue
       on_exception
     end
@@ -709,7 +713,7 @@ module RightAws
     class AddInstanceGroupsParser < RightAWSParser #:nodoc:
       def tagend(name)
         case name
-        when 'InstanceGroupId' then @result << @text
+        when 'InstanceGroupIds' then @result << @text.strip
         end
       end
       def reset
